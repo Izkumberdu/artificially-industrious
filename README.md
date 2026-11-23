@@ -46,9 +46,9 @@ Optional: run `npm link` to get an `industrious` command on your PATH.
 
 | Mode | How | Permissions |
 |---|---|---|
-| `caffeinate` (default) | `caffeinate -u`, which tells macOS the user is active | none |
+| `both` (default) | nudge resets the idle timer, and caffeinate keeps the screen from sleeping | Accessibility |
 | `nudge` | posts a zero-distance mouse move, so nothing visibly moves | Accessibility |
-| `both` | both of the above | Accessibility |
+| `caffeinate` | `caffeinate -u` only. **Not enough by itself**, see below | none |
 
 ```bash
 industrious mode nudge
@@ -65,11 +65,31 @@ System Settings → Privacy & Security → Accessibility and add the app yoursel
 Run `industrious permission` from the same app your AI tool runs in. The
 permission belongs to that app, not to `industrious`.
 
-**Status: unverified.** It's not yet confirmed whether Teams counts `caffeinate -u`
-as activity. To test it, start a long AI task, leave the keyboard and mouse
-alone for about 6 minutes, and watch your Teams status. If it goes Away, switch
-to `nudge` and give Accessibility permission to the app that runs your AI tool
-(Terminal, iTerm, Cursor…).
+> **Newer macOS** renamed this list to **Device Control and Data Access**
+> (still under Privacy & Security).
+>
+> **Claude desktop app:** hooks run under the bundled Claude Code engine, which
+> appears as a lowercase **`claude`** with a blank icon. That's the one to switch
+> on, not the orange **Claude** app. Because it lives in a versioned folder,
+> a Claude Code update may need you to switch it on again.
+
+**Why caffeinate alone isn't enough:** in a hands-off test with only
+`caffeinate -u` running once a minute, the system idle timer (`HIDIdleTime`) kept
+climbing to over 400 seconds. Teams goes Away after about 5 minutes idle, so it
+would still mark you Away. You need the nudge, and therefore Accessibility
+permission.
+
+**With `both` mode and Accessibility granted**, the same 6½-minute hands-off
+test never let the idle timer go past about 50 seconds. It reset with every
+once-a-minute nudge. Without that permission, macOS silently drops the nudges;
+`industrious status` and `~/.industrious/keeper.log` will tell you when that's
+happening.
+
+Check the idle timer yourself while a task runs and you're hands-off:
+
+```bash
+ioreg -c IOHIDSystem | awk '/HIDIdleTime/ {print int($NF/1e9) "s idle"; exit}'
+```
 
 ## Commands
 

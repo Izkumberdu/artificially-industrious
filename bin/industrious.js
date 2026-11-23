@@ -111,6 +111,11 @@ async function main() {
       const pid = keeperPid(HOME);
       console.log(`mode: ${cfg.mode}, every ${cfg.intervalSeconds}s, timeout ${cfg.timeoutMinutes}m`);
       console.log(`keeper: ${pid ? `running (pid ${pid})` : 'not running'}`);
+      if (cfg.mode !== 'caffeinate') {
+        console.log(
+          `accessibility: ${hasAccessibility() ? 'granted' : 'NOT granted, so nudges are dropped (run `industrious permission`)'}`,
+        );
+      }
       if (tasks.length === 0) console.log('no AI tasks running');
       for (const t of tasks) {
         const mins = Math.round((Date.now() - t.startedAt) / 60_000);
@@ -155,7 +160,9 @@ async function main() {
         console.log(
           'Accessibility permission: not granted.\n' +
             'macOS should now show a prompt, and the app running this command is now listed in\n' +
-            'System Settings → Privacy & Security → Accessibility. Switch it on, then quit and reopen that app.\n' +
+            'System Settings → Privacy & Security → Accessibility (called "Device Control and Data Access"\n' +
+            'on newer macOS). Switch it on, then quit and reopen that app.\n' +
+            'Using the Claude desktop app? Switch on the lowercase "claude" entry, not the orange "Claude".\n' +
             'Not listed? Click "+" there and add the app yourself (Terminal, iTerm, Claude, Cursor…).',
         );
       }

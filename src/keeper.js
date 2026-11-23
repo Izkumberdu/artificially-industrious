@@ -6,7 +6,7 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { listActive } from './tasks.js';
 import { loadConfig } from './config.js';
-import { keepAlive } from './keepalive.js';
+import { keepAlive, hasAccessibility } from './keepalive.js';
 
 const pidFile = (home) => join(home, 'keeper.pid');
 const BIN = fileURLToPath(new URL('../bin/industrious.js', import.meta.url));
@@ -61,8 +61,16 @@ export async function runKeeper(home) {
     process.exit(0);
   });
 
+  let warned = false;
   for (;;) {
     const cfg = loadConfig(home);
+    if (!warned && cfg.mode !== 'caffeinate' && !hasAccessibility()) {
+      console.log(
+        `${new Date().toISOString()} no Accessibility permission: nudges are being dropped, ` +
+          'so Teams will still go Away. Run `industrious permission`.',
+      );
+      warned = true;
+    }
     const active = listActive(home, Date.now(), cfg.timeoutMinutes * 60_000);
     if (active.length === 0) {
       release();
