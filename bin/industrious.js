@@ -7,7 +7,7 @@ import { join, dirname } from 'node:path';
 import { startTask, stopTask, listActive } from '../src/tasks.js';
 import { homeDir, loadConfig, saveConfig, MODES } from '../src/config.js';
 import { ensureKeeper, keeperPid, runKeeper } from '../src/keeper.js';
-import { nudge, notify } from '../src/keepalive.js';
+import { nudge, notify, hasAccessibility } from '../src/keepalive.js';
 import {
   readStdin,
   taskIdFrom,
@@ -44,7 +44,8 @@ Usage:
   industrious status                Show running tasks and the keeper
   industrious mode [${MODES.join('|')}]
                                     Show or set how activity is signalled
-  industrious nudge                 Send one nudge (to test Accessibility permission)
+  industrious permission            Check (and ask macOS for) Accessibility permission
+  industrious nudge                 Send one nudge
   industrious install claude|cursor [--write]
                                     Print (or write) the hooks for an AI tool
 
@@ -128,15 +129,36 @@ async function main() {
       console.log(`mode set to ${args[0]}`);
       if (args[0] !== 'caffeinate') {
         console.log(
-          'Nudge needs Accessibility permission: System Settings → Privacy & Security → Accessibility,\n' +
-            'then allow the app that runs your AI tool (Terminal, iTerm, Cursor, Claude…). Test with: industrious nudge',
+          hasAccessibility()
+            ? 'Accessibility permission: granted.'
+            : 'Nudge needs Accessibility permission. Run `industrious permission` from the app that runs your AI tool.',
         );
       }
       break;
     }
 
     case 'nudge':
-      console.log(nudge() ? 'nudge sent (if Teams still goes Away, check Accessibility permission)' : 'nudge failed');
+      if (!hasAccessibility()) {
+        console.log(
+          'No Accessibility permission yet, so macOS would silently drop the nudge.\n' +
+            'Run `industrious permission` to ask for it.',
+        );
+        process.exit(1);
+      }
+      console.log(nudge() ? 'nudge sent' : 'nudge failed');
+      break;
+
+    case 'permission':
+      if (hasAccessibility(true)) {
+        console.log('Accessibility permission: granted. Nudge mode will work.');
+      } else {
+        console.log(
+          'Accessibility permission: not granted.\n' +
+            'macOS should now show a prompt, and the app running this command is now listed in\n' +
+            'System Settings → Privacy & Security → Accessibility. Switch it on, then quit and reopen that app.\n' +
+            'Not listed? Click "+" there and add the app yourself (Terminal, iTerm, Claude, Cursor…).',
+        );
+      }
       break;
 
     case 'install': {

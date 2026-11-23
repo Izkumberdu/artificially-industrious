@@ -52,8 +52,18 @@ Optional: run `npm link` to get an `industrious` command on your PATH.
 
 ```bash
 industrious mode nudge
-industrious nudge      # send one, to check the permission works
+industrious permission # asks macOS for Accessibility access
+industrious nudge      # send one to check it works
 ```
+
+**Can't find the app under Accessibility?** macOS only lists an app after it
+has asked for access. `industrious permission` makes that request, so the app
+running it (Terminal, iTerm, Claude, Cursor…) shows up with a toggle. Switch
+it on, then quit and reopen that app. If it still isn't listed, click **+** in
+System Settings → Privacy & Security → Accessibility and add the app yourself.
+
+Run `industrious permission` from the same app your AI tool runs in. The
+permission belongs to that app, not to `industrious`.
 
 **Status: unverified.** It's not yet confirmed whether Teams counts `caffeinate -u`
 as activity. To test it, start a long AI task, leave the keyboard and mouse

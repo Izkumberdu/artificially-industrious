@@ -22,6 +22,17 @@ export function nudge() {
   return r.status === 0;
 }
 
+// Whether macOS lets this process post input events. With prompt=true, macOS
+// shows its "would like to control this computer" dialog and adds the app
+// that launched us (Terminal, iTerm, Claude, Cursor…) to the Accessibility
+// list — apps don't appear there until they've asked at least once.
+export function hasAccessibility(prompt = false) {
+  const jxa = `ObjC.import('ApplicationServices');
+${prompt ? `$.AXIsProcessTrustedWithOptions($({ AXTrustedCheckOptionPrompt: true }))` : `$.AXIsProcessTrusted()`}`;
+  const r = spawnSync('osascript', ['-l', 'JavaScript', '-e', jxa], { encoding: 'utf8' });
+  return r.stdout.trim() === 'true';
+}
+
 export function keepAlive(mode) {
   if (mode === 'caffeinate' || mode === 'both') caffeinate();
   if (mode === 'nudge' || mode === 'both') nudge();
