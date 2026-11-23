@@ -159,15 +159,23 @@ async function main() {
       }
       if (hasAccessibility(HOME, true)) {
         console.log('Industrious Nudge has permission. Nudges will work.');
-      } else {
-        console.log(
-          'Industrious Nudge does not have permission yet.\n' +
-            'macOS should now show a prompt, and "Industrious Nudge" is listed in\n' +
-            'System Settings → Privacy & Security → Accessibility (called "Device Control and Data Access"\n' +
-            'on newer macOS). Switch it on.',
-        );
+        break;
       }
-      break;
+      console.log(
+        'Switch on "Industrious Nudge" in System Settings → Privacy & Security → Accessibility\n' +
+          '(called "Device Control and Data Access" on newer macOS). Waiting up to 2 minutes…\n' +
+          'Tip: after a rebuild, remove any old Industrious Nudge entry with − first.\n' +
+          'Don\'t add it yourself with +; use the entry macOS just created.',
+      );
+      for (let waited = 0; waited < 120; waited += 3) {
+        await new Promise((r) => setTimeout(r, 3000));
+        if (hasAccessibility(HOME)) {
+          console.log('Granted. Nudges will work.');
+          process.exit(0);
+        }
+      }
+      console.log('Still not granted. Run `industrious permission` again when you are ready.');
+      process.exit(1);
 
     case 'install': {
       const [tool] = args;

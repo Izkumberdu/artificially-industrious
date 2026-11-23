@@ -1,3 +1,5 @@
+<p align="center"><img src="helper/icon.png" width="160" alt="Industrious Nudge icon: a green available check with a mouse pointer nudging it"></p>
+
 # Artificially Industrious
 
 *AI, but it stands for Artificially Industrious.*
@@ -29,6 +31,9 @@ AI tool hook ──► industrious hook stop  ──► task removed ──► "
   with `industrious run` are named after the program.
 - Notifications come from Industrious Nudge, so clicking one doesn't open
   anything. Allow them in System Settings → Notifications → Industrious Nudge.
+  If they show a blank icon, macOS cached the icon from an older build.
+  Restarting the notification service usually fixes it:
+  `killall usernoted NotificationCenter` (both restart on their own).
 
 ## Setup
 
@@ -84,6 +89,9 @@ Industrious Nudge is the only app that needs the permission.
 > build. After a rebuild, the old entry can still look switched on while macOS
 > ignores it. Select **Industrious Nudge** in the list, remove it with **−**,
 > then run `industrious permission` again and switch the new entry on.
+> Don't add it yourself with **+**: an entry added that way didn't match the
+> helper in testing. Only the entry macOS creates from `industrious permission`
+> works.
 
 **Why caffeinate alone isn't enough:** in a hands-off test with only
 `caffeinate -u` running once a minute, the system idle timer (`HIDIdleTime`) kept
