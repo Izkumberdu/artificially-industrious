@@ -2,6 +2,7 @@
   "name": "artificially-industrious",
   "version": "0.1.0",
   "private": true,
+  "license": "MIT",
   "type": "module",
   "description": "Keeps your Microsoft Teams status active while an AI tool is still working on your prompt.",
   "bin": {

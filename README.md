@@ -89,3 +89,7 @@ npm test
 ```
 
 Set `INDUSTRIOUS_HOME` to a temp folder so testing doesn't touch your real state.
+
+## License
+
+[MIT](LICENSE)
