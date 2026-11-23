@@ -5,6 +5,8 @@ import {
   mergeClaudeSettings,
   mergeCursorHooks,
   mergeCopilotHooks,
+  removeClaudeHooks,
+  removeCursorHooks,
   shellQuote,
 } from '../src/hooks.js';
 
@@ -61,4 +63,24 @@ test('Cursor hooks.json gains hooks and stays idempotent', () => {
   assert.deepEqual(once.hooks.beforeSubmitPrompt, [{ command: 'IND hook start cursor' }]);
   assert.deepEqual(once.hooks.stop, [{ command: 'IND hook stop cursor' }]);
   assert.deepEqual(mergeCursorHooks(once, 'IND'), once);
+});
+
+test('removing hooks from Claude settings keeps everything else', () => {
+  const user = { hooks: [{ type: 'command', command: 'say done' }] };
+  const settings = mergeClaudeSettings(
+    { model: 'opus', hooks: { Stop: [user] } },
+    "'/n/node' '/x/artificially-industrious/bin/industrious.js'",
+  );
+  const cleaned = removeClaudeHooks(settings);
+  assert.deepEqual(cleaned, { model: 'opus', hooks: { Stop: [user] } });
+});
+
+test('removing the only hooks drops the empty hooks object', () => {
+  const cleaned = removeClaudeHooks(mergeClaudeSettings({ theme: 'auto' }, "'n' '/a/bin/industrious.js'"));
+  assert.deepEqual(cleaned, { theme: 'auto' });
+});
+
+test('removing hooks from Cursor keeps other hooks', () => {
+  const merged = mergeCursorHooks({ version: 1, hooks: { stop: [{ command: 'say hi' }] } }, "'n' '/a/bin/industrious.js'");
+  assert.deepEqual(removeCursorHooks(merged), { version: 1, hooks: { stop: [{ command: 'say hi' }] } });
 });

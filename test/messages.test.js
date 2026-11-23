@@ -26,8 +26,8 @@ test('says which tool finished', () => {
   assert.match(n.body, /back to work/i);
 });
 
-test('mentions tools that are still working', () => {
-  const n = doneNotification({ source: 'claude' }, [{ source: 'cursor' }, { source: 'codex' }, { source: 'codex' }]);
+test('always says back to work, even if other tools are still running', () => {
+  const n = doneNotification({ source: 'claude' }, [{ source: 'cursor' }, { source: 'codex' }]);
   assert.equal(n.title, 'Claude is finished working');
-  assert.equal(n.body, 'Still working: Cursor, Codex');
+  assert.equal(n.body, 'Back to work, for real this time.');
 });

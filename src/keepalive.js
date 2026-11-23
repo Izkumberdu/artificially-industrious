@@ -13,6 +13,9 @@ export function caffeinate() {
 // Nudges go through "Industrious Nudge.app", a tiny helper whose only ability
 // is a zero-distance mouse move. Launching it with `open` makes macOS check
 // the helper's own permission, so the helper is the only app that needs it.
+// Must match CFBundleIdentifier in helper/Info.plist.
+export const HELPER_ID = 'io.github.izkumberdu.artificially-industrious.nudge';
+
 export function helperPath() {
   return process.env.INDUSTRIOUS_HELPER || join(homedir(), 'Applications', 'Industrious Nudge.app');
 }

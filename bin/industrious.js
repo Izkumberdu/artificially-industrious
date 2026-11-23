@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Artificially Industrious — stays "Available" while your AI is still working.
 import { spawn } from 'node:child_process';
-import { readFileSync, writeFileSync, copyFileSync, existsSync, mkdirSync } from 'node:fs';
+import { readFileSync, writeFileSync, copyFileSync, existsSync, mkdirSync, rmSync, renameSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join, dirname } from 'node:path';
 import { startTask, stopTask, listActive } from '../src/tasks.js';
@@ -10,7 +10,7 @@ import { homeDir, loadConfig, saveConfig, MODES } from '../src/config.js';
 import { ensureKeeper, keeperPid, runKeeper } from '../src/keeper.js';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-import { nudge, notify, hasAccessibility, helperInstalled, helperPath } from '../src/keepalive.js';
+import { nudge, notify, hasAccessibility, helperInstalled, helperPath, HELPER_ID } from '../src/keepalive.js';
 import {
   readStdin,
   taskIdFrom,
@@ -18,6 +18,8 @@ import {
   mergeClaudeSettings,
   mergeCursorHooks,
   mergeCopilotHooks,
+  removeClaudeHooks,
+  removeCursorHooks,
 } from '../src/hooks.js';
 
 const HOME = homeDir();
@@ -35,7 +37,7 @@ function end(id) {
   const finished = activeTasks().find((t) => t.id === id);
   stopTask(HOME, id);
   if (finished && loadConfig(HOME).notifyWhenDone) {
-    const { title, body } = doneNotification(finished, activeTasks());
+    const { title, body } = doneNotification(finished);
     notify(title, body, HOME);
   }
 }
@@ -61,6 +63,8 @@ Usage:
   industrious nudge                 Send one nudge
   industrious install claude|copilot|cursor [--write]
                                     Print (or write) the hooks for an AI tool
+
+  industrious uninstall             Remove the hooks, the helper app and all state
 
 Internal:
   industrious hook start|stop <source>   Called by AI-tool hooks (reads JSON on stdin)
@@ -214,6 +218,78 @@ async function main() {
       }
       writeFileSync(path, JSON.stringify(next, null, 2) + '\n');
       console.log(`hooks installed in ${path}`);
+      break;
+    }
+
+    case 'uninstall': {
+      const home = homedir();
+      const done = (msg) => console.log(`✓ ${msg}`);
+
+      // 1. Hooks, so no AI tool calls us any more.
+      const backupAndWrite = (path, next) => {
+        copyFileSync(path, `${path}.bak-${Date.now()}`);
+        writeFileSync(path, JSON.stringify(next, null, 2) + '\n');
+      };
+      const claude = join(home, '.claude', 'settings.json');
+      if (existsSync(claude)) {
+        const cur = JSON.parse(readFileSync(claude, 'utf8'));
+        const next = removeClaudeHooks(cur);
+        if (JSON.stringify(next) !== JSON.stringify(cur)) {
+          backupAndWrite(claude, next);
+          done(`removed Claude Code hooks from ${claude} (backup made)`);
+        }
+      }
+      const cursor = join(home, '.cursor', 'hooks.json');
+      if (existsSync(cursor)) {
+        const cur = JSON.parse(readFileSync(cursor, 'utf8'));
+        const next = removeCursorHooks(cur);
+        if (JSON.stringify(next) !== JSON.stringify(cur)) {
+          backupAndWrite(cursor, next);
+          done(`removed Cursor hooks from ${cursor} (backup made)`);
+        }
+      }
+      const copilot = join(process.env.COPILOT_HOME || join(home, '.copilot'), 'hooks', 'industrious.json');
+      if (existsSync(copilot)) {
+        rmSync(copilot);
+        done(`removed Copilot hooks (${copilot})`);
+      }
+
+      // 2. The keeper.
+      const pid = keeperPid(HOME);
+      if (pid) {
+        try { process.kill(pid, 'SIGTERM'); } catch {}
+        done('stopped the keeper');
+      }
+
+      // 3. The helper app goes to the Trash, so it can be recovered.
+      if (helperInstalled()) {
+        const trash = join(home, '.Trash');
+        try {
+          mkdirSync(trash, { recursive: true });
+          renameSync(helperPath(), join(trash, `Industrious Nudge ${Date.now()}.app`));
+          done('moved Industrious Nudge.app to the Trash');
+        } catch {
+          rmSync(helperPath(), { recursive: true, force: true });
+          done('deleted Industrious Nudge.app');
+        }
+      }
+
+      // 4. State and logs.
+      if (existsSync(HOME)) {
+        rmSync(HOME, { recursive: true, force: true });
+        done(`removed ${HOME}`);
+      }
+
+      const repo = fileURLToPath(new URL('..', import.meta.url)).replace(/\/$/, '');
+      console.log(
+        '\nTo finish, run these yourself:\n\n' +
+          `  tccutil reset All ${HELPER_ID}\n` +
+          '      forgets the helper\'s macOS permissions\n' +
+          '  npm rm -g artificially-industrious\n' +
+          '      removes the industrious command\n' +
+          `  rm -rf ${JSON.stringify(repo)}\n` +
+          '      deletes the project folder\n',
+      );
       break;
     }
 

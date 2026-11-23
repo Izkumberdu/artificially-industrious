@@ -16,11 +16,9 @@ export function toolName(source) {
   return KNOWN[name.toLowerCase()] ?? name.charAt(0).toUpperCase() + name.slice(1);
 }
 
-export function doneNotification(finished, remaining) {
-  const title = `${toolName(finished?.source)} is finished working`;
-  const still = [...new Set(remaining.map((t) => toolName(t.source)))];
-  const body = still.length
-    ? `Still working: ${still.join(', ')}`
-    : 'Back to work, for real this time.';
-  return { title, body };
+export function doneNotification(finished) {
+  return {
+    title: `${toolName(finished?.source)} is finished working`,
+    body: 'Back to work, for real this time.',
+  };
 }

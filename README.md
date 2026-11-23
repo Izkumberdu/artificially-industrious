@@ -78,8 +78,8 @@ prompt done  ──► industrious hook stop  ──► "<Tool> is finished work
   nothing is.
 - A task older than 2 hours counts as crashed and is dropped, so a dead tool
   can't keep you Available forever.
-- Each time a tool finishes, you get a notification naming it. If others are
-  still running, it lists them: *"Still working: Codex"*.
+- Each time a tool finishes, you get a notification naming it: *"Claude is
+  finished working. Back to work, for real this time."*
 
 ## The nudge helper
 
@@ -113,6 +113,7 @@ industrious install cursor --write    add the Cursor hooks
 industrious run -- <command>          stay Available while any command runs
 industrious start|stop [id] [tool]    manual control
 industrious mode [both|nudge|caffeinate]
+industrious uninstall                 remove hooks, helper app and state
 ```
 
 Config lives in `~/.industrious/config.json`: `mode` (default `both`: nudge,
@@ -138,6 +139,29 @@ your tool again.
 **Copilot isn't detected.** Copilot's hooks are a preview feature in VS Code.
 Make sure the chat is using Copilot agent mode, and check that
 `~/.copilot/hooks/industrious.json` exists.
+
+## Uninstall
+
+```bash
+industrious uninstall
+```
+
+This removes the hooks from Claude Code, Copilot and Cursor (leaving your other
+hooks alone, with a backup of each settings file), stops the keeper, moves
+Industrious Nudge.app to the Trash, and deletes `~/.industrious`.
+
+It then prints three commands to run yourself: one to reset the helper's macOS
+permissions, one to remove the `industrious` command, and one to delete the
+project folder.
+
+> **Just deleting the app isn't enough.** The hooks live in your AI tools'
+> settings, so they keep running. Without the app, Teams goes Away again;
+> without the project folder, every prompt shows a hook error. Run
+> `industrious uninstall` first.
+>
+> macOS also remembers the helper's permission after the app is gone, so a
+> reinstall usually skips the permission step. Reset it with the `tccutil`
+> command above for a true clean slate.
 
 ## Development
 

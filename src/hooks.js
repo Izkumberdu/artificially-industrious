@@ -78,3 +78,29 @@ export function mergeCursorHooks(config, cmd) {
   add('stop', `${cmd} hook stop cursor`);
   return next;
 }
+
+// Uninstall: strip only our hooks, matched by the command they run.
+const isOurs = (command) => /industrious\.js'? hook (start|stop) /.test(String(command ?? ''));
+
+export function removeClaudeHooks(settings) {
+  const next = structuredClone(settings ?? {});
+  for (const [event, groups] of Object.entries(next.hooks ?? {})) {
+    const kept = groups
+      .map((g) => ({ ...g, hooks: (g.hooks ?? []).filter((h) => !isOurs(h.command)) }))
+      .filter((g) => g.hooks.length);
+    if (kept.length) next.hooks[event] = kept;
+    else delete next.hooks[event];
+  }
+  if (next.hooks && Object.keys(next.hooks).length === 0) delete next.hooks;
+  return next;
+}
+
+export function removeCursorHooks(config) {
+  const next = structuredClone(config ?? {});
+  for (const [event, list] of Object.entries(next.hooks ?? {})) {
+    const kept = list.filter((h) => !isOurs(h.command));
+    if (kept.length) next.hooks[event] = kept;
+    else delete next.hooks[event];
+  }
+  return next;
+}
