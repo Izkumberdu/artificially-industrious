@@ -1,4 +1,4 @@
-<p align="center"><img src="helper/icon.png" width="160" alt="Industrious Nudge icon: a green available check with a mouse pointer nudging it"></p>
+<p align="center"><img src="helper/icon.png" width="160" alt="Industrious Nudge icon: a white mouse pointer on a green tile"></p>
 
 # Artificially Industrious
 
@@ -6,105 +6,96 @@
 
 Your AI is still working on your prompt, so you are still working. This keeps
 your Microsoft Teams status "Available" while that's true, then stops, and tells
-you which tool finished: *"Claude is finished working"*, *"Codex is finished
-working"*.
+you which tool finished: *"Claude is finished working"*,
+*"Copilot is finished working"*.
+
+Works with Claude Code, GitHub Copilot, Cursor, and any command-line AI tool.
 
 macOS only. No npm dependencies. No Microsoft Graph and no Azure setup.
+
+## Setup
+
+You need Node 20+ and the Xcode Command Line Tools (`xcode-select --install`).
+
+**1. Get it**
+
+```bash
+git clone https://github.com/Izkumberdu/artificially-industrious.git
+cd artificially-industrious
+npm link
+```
+
+**2. Install the helper**
+
+```bash
+industrious install helper
+```
+
+This builds **Industrious Nudge.app** into `~/Applications`.
+
+**3. Allow it**
+
+```bash
+industrious permission
+```
+
+macOS asks to let Industrious Nudge send notifications: click **Allow**. Then,
+in System Settings → Privacy & Security → **Accessibility** (called **Device
+Control and Data Access** on newer macOS), switch on **Industrious Nudge**. The
+command waits until you have.
+
+**4. Connect your AI tool**
+
+Run the line for each tool you use:
+
+| Tool | Command | Hooks go in |
+|---|---|---|
+| Claude Code (CLI, desktop app, IDE) | `industrious install claude --write` | `~/.claude/settings.json` |
+| GitHub Copilot (VS Code agent mode, Copilot CLI) | `industrious install copilot --write` | `~/.copilot/hooks/industrious.json` |
+| Cursor | `industrious install cursor --write` | `~/.cursor/hooks.json` |
+| Anything else (Codex, Aider, Gemini CLI…) | `industrious run -- codex "fix the tests"` | nothing to install |
+
+Existing settings files are backed up first. Leave out `--write` to preview
+the change. `industrious run` wraps any command and stays Available until it
+exits.
+
+That's it. Send a prompt and run `industrious status` to see it working.
 
 ## How it works
 
 ```
-AI tool hook ──► industrious hook start ──► task file + background keeper
-                                                │  every 60s: "user is active"
-AI tool hook ──► industrious hook stop  ──► task removed ──► "<Tool> is finished working"
-                                                └─ none left? keeper exits
+prompt sent  ──► industrious hook start ──► keeper starts
+                                              │  every 60s: Industrious Nudge
+                                              │  moves the mouse by 0 pixels
+prompt done  ──► industrious hook stop  ──► "<Tool> is finished working"
+                                              └─ nothing left running? keeper exits
 ```
 
-- Each running AI task is a small file in `~/.industrious/tasks/`, so tools
-  running at the same time don't step on each other.
-- A keeper process runs only while at least one task is active, and exits on
-  its own when none are left.
-- A task older than `timeoutMinutes` (default 120) counts as crashed and is
-  dropped, so a dead tool can't keep you active forever.
+- While a task is running, a background keeper launches Industrious Nudge once a
+  minute. macOS counts its zero-distance mouse move as activity, so Teams keeps
+  you Available.
+- The keeper only runs while something is working, and exits on its own when
+  nothing is.
+- A task older than 2 hours counts as crashed and is dropped, so a dead tool
+  can't keep you Available forever.
 - Each time a tool finishes, you get a notification naming it. If others are
-  still running, it lists them too: *"Still working: Codex"*. Commands wrapped
-  with `industrious run` are named after the program.
-- Notifications come from Industrious Nudge, so clicking one doesn't open
-  anything. Allow them in System Settings → Notifications → Industrious Nudge.
-  If they show a blank icon, macOS cached the icon from an older build.
-  Restarting the notification service usually fixes it:
-  `killall usernoted NotificationCenter` (both restart on their own).
+  still running, it lists them: *"Still working: Codex"*.
 
-## Setup
+## The nudge helper
 
-```bash
-# 1. The nudge helper (see "Modes" below for why it's a separate app)
-node bin/industrious.js install helper
-node bin/industrious.js permission
+Moving the mouse, even by zero pixels, needs macOS's Accessibility permission.
+That permission is powerful: an app that has it can type and click anywhere.
 
-# 2. Claude Code: preview first, then write (a backup of settings.json is made)
-node bin/industrious.js install claude
-node bin/industrious.js install claude --write
+So it goes to one small, single-purpose app: **Industrious Nudge**, about 50
+lines of Swift (`helper/main.swift`). It does two things, then quits: post one
+mouse move at the cursor's current position, and show the "finished working"
+notification. Industrious Nudge is the only app that needs the permission.
 
-# Cursor
-node bin/industrious.js install cursor --write
+**Tested:** in a 6½-minute hands-off test, the system idle timer never went past
+about 60 seconds. Without the nudge (`caffeinate` alone), it climbed past 400
+seconds, and Teams goes Away after about 5 minutes.
 
-# Anything else: wrap the command
-node bin/industrious.js run -- codex "fix the tests"
-```
-
-Optional: run `npm link` to get an `industrious` command on your PATH.
-
-> The hooks call the exact `node` binary you installed them with. If you switch
-> Node versions with nvm and that binary goes away, run `install` again.
-
-## Modes
-
-| Mode | How | Permissions |
-|---|---|---|
-| `both` (default) | nudge resets the idle timer, and caffeinate keeps the screen from sleeping | helper only |
-| `nudge` | posts a zero-distance mouse move, so nothing visibly moves | helper only |
-| `caffeinate` | `caffeinate -u` only. **Not enough by itself**, see below | none |
-
-### The nudge helper
-
-Posting even a zero-distance mouse move needs macOS's Accessibility permission,
-called **Device Control and Data Access** on newer macOS. That permission is
-powerful: an app that has it can type and click anywhere.
-
-So the permission goes to one small, single-purpose app:
-**Industrious Nudge.app**, a ~50-line helper (`helper/main.swift`). It can only
-post one mouse move at the cursor's current position, and then it quits. The
-keeper launches it with `open`, so macOS checks the helper's own permission.
-
-```bash
-industrious install helper   # builds Industrious Nudge.app into ~/Applications (needs Xcode CLT)
-industrious permission       # macOS lists "Industrious Nudge"; switch it on
-industrious status           # helper: ready
-```
-
-Industrious Nudge is the only app that needs the permission.
-
-> The helper is ad-hoc signed, so macOS tracks the permission for that exact
-> build. After a rebuild, the old entry can still look switched on while macOS
-> ignores it. Select **Industrious Nudge** in the list, remove it with **−**,
-> then run `industrious permission` again and switch the new entry on.
-> Don't add it yourself with **+**: an entry added that way didn't match the
-> helper in testing. Only the entry macOS creates from `industrious permission`
-> works.
-
-**Why caffeinate alone isn't enough:** in a hands-off test with only
-`caffeinate -u` running once a minute, the system idle timer (`HIDIdleTime`) kept
-climbing to over 400 seconds. Teams goes Away after about 5 minutes idle, so it
-would still mark you Away. You need the nudge, and therefore the helper.
-
-**With `both` mode and Industrious Nudge switched on**, the same 6½-minute
-hands-off test never let the idle timer go past about 60 seconds. It reset with
-every once-a-minute nudge. Without the permission, macOS silently drops the nudges;
-`industrious status` and `~/.industrious/keeper.log` will tell you when that's
-happening.
-
-Check the idle timer yourself while a task runs and you're hands-off:
+Check it yourself while a task runs and you're hands-off:
 
 ```bash
 ioreg -c IOHIDSystem | awk '/HIDIdleTime/ {print int($NF/1e9) "s idle"; exit}'
@@ -113,13 +104,40 @@ ioreg -c IOHIDSystem | awk '/HIDIdleTime/ {print int($NF/1e9) "s idle"; exit}'
 ## Commands
 
 ```
-industrious status               running tasks and the keeper
-industrious start|stop [id]      manual control
-industrious mode [caffeinate|nudge|both]
+industrious status                    running tasks, keeper and helper state
+industrious permission                ask macOS to allow Industrious Nudge
+industrious install helper            (re)build Industrious Nudge.app
+industrious install claude --write    add the Claude Code hooks
+industrious install copilot --write   add the GitHub Copilot hooks
+industrious install cursor --write    add the Cursor hooks
+industrious run -- <command>          stay Available while any command runs
+industrious start|stop [id] [tool]    manual control
+industrious mode [both|nudge|caffeinate]
 ```
 
-Config lives in `~/.industrious/config.json`: `mode`, `intervalSeconds`,
-`timeoutMinutes`, `notifyWhenDone`. The keeper's log is `~/.industrious/keeper.log`.
+Config lives in `~/.industrious/config.json`: `mode` (default `both`: nudge,
+plus `caffeinate` so the screen doesn't sleep), `intervalSeconds`,
+`timeoutMinutes`, `notifyWhenDone`. The keeper's log is
+`~/.industrious/keeper.log`.
+
+## Troubleshooting
+
+**`industrious status` says the helper has no permission after a rebuild.**
+macOS ties the permission to the exact build, so the old entry can still look
+switched on while macOS ignores it. Remove **Industrious Nudge** from the list
+with **−**, run `industrious permission`, and switch on the new entry. Don't
+add it yourself with **+**: an entry added that way doesn't match the helper.
+
+**Notifications show a blank icon.** macOS cached the icon from an older build.
+Run `killall usernoted NotificationCenter`; both restart on their own.
+
+**Hooks stopped working after switching Node versions.** The hooks call the
+exact `node` binary you installed them with. Run the `install` command for
+your tool again.
+
+**Copilot isn't detected.** Copilot's hooks are a preview feature in VS Code.
+Make sure the chat is using Copilot agent mode, and check that
+`~/.copilot/hooks/industrious.json` exists.
 
 ## Development
 

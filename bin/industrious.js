@@ -17,6 +17,7 @@ import {
   selfCommand,
   mergeClaudeSettings,
   mergeCursorHooks,
+  mergeCopilotHooks,
 } from '../src/hooks.js';
 
 const HOME = homeDir();
@@ -58,7 +59,7 @@ Usage:
   industrious install helper        Build the Industrious Nudge helper app into ~/Applications
   industrious permission            Ask macOS to give the helper Accessibility permission
   industrious nudge                 Send one nudge
-  industrious install claude|cursor [--write]
+  industrious install claude|copilot|cursor [--write]
                                     Print (or write) the hooks for an AI tool
 
 Internal:
@@ -190,8 +191,12 @@ async function main() {
       const targets = {
         claude: [join(homedir(), '.claude', 'settings.json'), mergeClaudeSettings],
         cursor: [join(homedir(), '.cursor', 'hooks.json'), mergeCursorHooks],
+        copilot: [
+          join(process.env.COPILOT_HOME || join(homedir(), '.copilot'), 'hooks', 'industrious.json'),
+          mergeCopilotHooks,
+        ],
       };
-      if (!targets[tool]) throw new Error('install needs: helper, claude or cursor');
+      if (!targets[tool]) throw new Error('install needs: helper, claude, copilot or cursor');
       const [path, merge] = targets[tool];
       const current = existsSync(path) ? JSON.parse(readFileSync(path, 'utf8')) : {};
       const next = merge(current, selfCommand());

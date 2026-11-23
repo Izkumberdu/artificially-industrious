@@ -17,9 +17,9 @@ export function readStdin(timeoutMs = 1000) {
   });
 }
 
-// Claude Code sends session_id; Cursor sends conversation_id.
+// Claude Code sends session_id; Cursor sends conversation_id; Copilot sends sessionId.
 export function taskIdFrom(source, payload) {
-  const id = payload?.session_id ?? payload?.conversation_id ?? 'default';
+  const id = payload?.session_id ?? payload?.conversation_id ?? payload?.sessionId ?? 'default';
   return `${source}:${id}`;
 }
 
@@ -46,6 +46,22 @@ export function mergeClaudeSettings(settings, cmd) {
   add('UserPromptSubmit', `${cmd} hook start claude`);
   add('Stop', `${cmd} hook stop claude`);
   add('SessionEnd', `${cmd} hook stop claude`);
+  return next;
+}
+
+// ~/.copilot/hooks/industrious.json — read by GitHub Copilot in VS Code
+// (agent mode) and by the Copilot CLI. agentStop fires once per prompt.
+export function mergeCopilotHooks(config, cmd) {
+  const next = structuredClone(config ?? {});
+  next.version ??= 1;
+  next.hooks ??= {};
+  const add = (event, bash) => {
+    const list = (next.hooks[event] ??= []);
+    if (!list.some((h) => h.bash === bash)) list.push({ type: 'command', bash, timeoutSec: 10 });
+  };
+  add('userPromptSubmitted', `${cmd} hook start copilot`);
+  add('agentStop', `${cmd} hook stop copilot`);
+  add('sessionEnd', `${cmd} hook stop copilot`);
   return next;
 }
 

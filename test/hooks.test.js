@@ -1,10 +1,28 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { taskIdFrom, mergeClaudeSettings, mergeCursorHooks, shellQuote } from '../src/hooks.js';
+import {
+  taskIdFrom,
+  mergeClaudeSettings,
+  mergeCursorHooks,
+  mergeCopilotHooks,
+  shellQuote,
+} from '../src/hooks.js';
 
 test('task id comes from the session or conversation id', () => {
   assert.equal(taskIdFrom('claude', { session_id: 's1' }), 'claude:s1');
   assert.equal(taskIdFrom('cursor', { conversation_id: 'c1' }), 'cursor:c1');
+  assert.equal(taskIdFrom('copilot', { sessionId: 'p1' }), 'copilot:p1');
+});
+
+test('Copilot hooks file has start and stop hooks and stays idempotent', () => {
+  const once = mergeCopilotHooks({}, 'IND');
+  assert.equal(once.version, 1);
+  assert.deepEqual(once.hooks.userPromptSubmitted, [
+    { type: 'command', bash: 'IND hook start copilot', timeoutSec: 10 },
+  ]);
+  assert.equal(once.hooks.agentStop[0].bash, 'IND hook stop copilot');
+  assert.equal(once.hooks.sessionEnd[0].bash, 'IND hook stop copilot');
+  assert.deepEqual(mergeCopilotHooks(once, 'IND'), once);
 });
 
 test('task id falls back to one shared id per tool', () => {
