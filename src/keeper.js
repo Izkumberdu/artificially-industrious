@@ -80,7 +80,7 @@ export async function runKeeper(home) {
           (helperInstalled()
             ? 'Industrious Nudge has no Accessibility permission. Run `industrious permission`.'
             : 'Industrious Nudge is not installed. Run `industrious install helper`.') +
-          ' Teams will still go Away.',
+          ' Teams and Slack will still mark you Away.',
       );
       warned = true;
     }

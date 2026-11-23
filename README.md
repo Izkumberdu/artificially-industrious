@@ -4,8 +4,10 @@
 
 *AI, but it stands for Artificially Industrious.*
 
+<p align="center"><img src="docs/notification.png" width="460" alt="macOS notification from Industrious Nudge: Claude is finished working. Back to work, for real this time."></p>
+
 Your AI is still working on your prompt, so you are still working. This keeps
-your Microsoft Teams status "Available" while that's true, then stops, and tells
+your Microsoft Teams and Slack status "Available" while that's true, then stops, and tells
 you which tool finished: *"Claude is finished working"*,
 *"Copilot is finished working"*.
 
@@ -72,8 +74,9 @@ prompt done  ──► industrious hook stop  ──► "<Tool> is finished work
 ```
 
 - While a task is running, a background keeper launches Industrious Nudge once a
-  minute. macOS counts its zero-distance mouse move as activity, so Teams keeps
-  you Available.
+  minute. macOS counts its zero-distance mouse move as activity, so Teams and
+  Slack keep you Available. Any app that checks how long your Mac has been idle
+  does the same.
 - The keeper only runs while something is working, and exits on its own when
   nothing is.
 - A task older than 2 hours counts as crashed and is dropped, so a dead tool
@@ -93,7 +96,7 @@ notification. Industrious Nudge is the only app that needs the permission.
 
 **Tested:** in a 6½-minute hands-off test, the system idle timer never went past
 about 60 seconds. Without the nudge (`caffeinate` alone), it climbed past 400
-seconds, and Teams goes Away after about 5 minutes.
+seconds, and Teams marks you Away after about 5 minutes.
 
 Check it yourself while a task runs and you're hands-off:
 
@@ -155,7 +158,7 @@ permissions, one to remove the `industrious` command, and one to delete the
 project folder.
 
 > **Just deleting the app isn't enough.** The hooks live in your AI tools'
-> settings, so they keep running. Without the app, Teams goes Away again;
+> settings, so they keep running. Without the app, Teams and Slack mark you Away again;
 > without the project folder, every prompt shows a hook error. Run
 > `industrious uninstall` first.
 >

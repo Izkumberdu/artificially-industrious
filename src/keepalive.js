@@ -1,10 +1,10 @@
-// The two ways of telling macOS (and therefore Teams) that you're still here.
+// The two ways of telling macOS (and therefore Teams, Slack etc.) that you're still here.
 import { spawnSync } from 'node:child_process';
 import { existsSync, readFileSync, rmSync, mkdirSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 
-// Keeps the display awake. Tested: does NOT reset the idle timer Teams reads,
+// Keeps the display awake. Tested: does NOT reset the idle timer chat apps read,
 // so on its own it won't keep you green.
 export function caffeinate() {
   spawnSync('caffeinate', ['-u', '-t', '1'], { stdio: 'ignore' });

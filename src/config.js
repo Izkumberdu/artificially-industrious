@@ -6,11 +6,11 @@ export const MODES = ['caffeinate', 'nudge', 'both'];
 
 export const DEFAULTS = {
   // caffeinate: keeps the display awake, but does NOT reset the idle timer
-  //   Teams reads (tested: idle kept climbing past 400s), so alone it's not enough
+  //   chat apps read (tested: idle kept climbing past 400s), so alone it's not enough
   // nudge: post a zero-distance mouse move (needs Accessibility permission)
   // both: nudge resets the idle timer, caffeinate stops the screen sleeping
   mode: 'both',
-  intervalSeconds: 60, // Teams goes Away after ~5 min idle, so once a minute is plenty
+  intervalSeconds: 60, // Teams goes Away after ~5 min idle (Slack later), so once a minute is plenty
   timeoutMinutes: 120, // a task older than this is assumed crashed
   notifyWhenDone: true,
 };

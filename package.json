@@ -4,7 +4,7 @@
   "private": true,
   "license": "MIT",
   "type": "module",
-  "description": "Keeps your Microsoft Teams status active while an AI tool is still working on your prompt.",
+  "description": "Keeps your Microsoft Teams and Slack status Available while an AI tool is still working on your prompt.",
   "bin": {
     "industrious": "bin/industrious.js"
   },
