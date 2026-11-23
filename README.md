@@ -3,8 +3,9 @@
 *AI, but it stands for Artificially Industrious.*
 
 Your AI is still working on your prompt, so you are still working. This keeps
-your Microsoft Teams status "Available" while that's true, then stops, and sends
-a notification when your AI is done.
+your Microsoft Teams status "Available" while that's true, then stops, and tells
+you which tool finished: *"Claude is finished working"*, *"Codex is finished
+working"*.
 
 macOS only. No npm dependencies. No Microsoft Graph and no Azure setup.
 
@@ -13,7 +14,8 @@ macOS only. No npm dependencies. No Microsoft Graph and no Azure setup.
 ```
 AI tool hook ──► industrious hook start ──► task file + background keeper
                                                 │  every 60s: "user is active"
-AI tool hook ──► industrious hook stop  ──► task removed ──► last one? notify + keeper exits
+AI tool hook ──► industrious hook stop  ──► task removed ──► "<Tool> is finished working"
+                                                └─ none left? keeper exits
 ```
 
 - Each running AI task is a small file in `~/.industrious/tasks/`, so tools
@@ -22,6 +24,11 @@ AI tool hook ──► industrious hook stop  ──► task removed ──► l
   its own when none are left.
 - A task older than `timeoutMinutes` (default 120) counts as crashed and is
   dropped, so a dead tool can't keep you active forever.
+- Each time a tool finishes, you get a notification naming it. If others are
+  still running, it lists them too: *"Still working: Codex"*. Commands wrapped
+  with `industrious run` are named after the program.
+- Notifications come from Industrious Nudge, so clicking one doesn't open
+  anything. Allow them in System Settings → Notifications → Industrious Nudge.
 
 ## Setup
 
@@ -74,7 +81,9 @@ industrious status           # helper: ready
 Industrious Nudge is the only app that needs the permission.
 
 > The helper is ad-hoc signed, so macOS tracks the permission for that exact
-> build. If you rebuild it, switch it on again.
+> build. After a rebuild, the old entry can still look switched on while macOS
+> ignores it. Select **Industrious Nudge** in the list, remove it with **−**,
+> then run `industrious permission` again and switch the new entry on.
 
 **Why caffeinate alone isn't enough:** in a hands-off test with only
 `caffeinate -u` running once a minute, the system idle timer (`HIDIdleTime`) kept

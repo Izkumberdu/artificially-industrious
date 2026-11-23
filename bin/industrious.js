@@ -5,6 +5,7 @@ import { readFileSync, writeFileSync, copyFileSync, existsSync, mkdirSync } from
 import { homedir } from 'node:os';
 import { join, dirname } from 'node:path';
 import { startTask, stopTask, listActive } from '../src/tasks.js';
+import { doneNotification } from '../src/messages.js';
 import { homeDir, loadConfig, saveConfig, MODES } from '../src/config.js';
 import { ensureKeeper, keeperPid, runKeeper } from '../src/keeper.js';
 import { spawnSync } from 'node:child_process';
@@ -30,10 +31,11 @@ function begin(id, source) {
 }
 
 function end(id) {
-  const existed = activeTasks().some((t) => t.id === id);
+  const finished = activeTasks().find((t) => t.id === id);
   stopTask(HOME, id);
-  if (existed && activeTasks().length === 0 && loadConfig(HOME).notifyWhenDone) {
-    notify('Your AI is done. Back to work, for real this time.');
+  if (finished && loadConfig(HOME).notifyWhenDone) {
+    const { title, body } = doneNotification(finished, activeTasks());
+    notify(title, body, HOME);
   }
 }
 
@@ -48,7 +50,7 @@ const USAGE = `Artificially Industrious — stays active while your AI is still 
 
 Usage:
   industrious run -- <command...>   Stay active while a command runs
-  industrious start [id]            Mark a task as started (default id: manual)
+  industrious start [id] [tool]     Mark a task as started (tool names the notification)
   industrious stop [id]             Mark a task as finished
   industrious status                Show running tasks and the keeper
   industrious mode [${MODES.join('|')}]
@@ -67,7 +69,7 @@ Internal:
 async function main() {
   switch (cmd) {
     case 'start':
-      begin(args[0] ?? 'manual', 'manual');
+      begin(args[0] ?? 'manual', args[1] ?? 'manual');
       break;
 
     case 'stop':

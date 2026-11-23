@@ -28,7 +28,8 @@ export function runHelper(mode, home) {
   rmSync(statusFile, { force: true });
   spawnSync('open', ['-g', '-W', '-n', helperPath(), '--args', mode, statusFile], {
     stdio: 'ignore',
-    timeout: 15_000,
+    // "prompt" waits for you to answer macOS's notification dialog.
+    timeout: mode === 'prompt' ? 90_000 : 15_000,
   });
   try {
     return JSON.parse(readFileSync(statusFile, 'utf8'));
@@ -54,9 +55,20 @@ export function keepAlive(mode, home) {
   return undefined;
 }
 
-export function notify(message, title = 'Artificially Industrious') {
+// Shown by the helper, so the notification is from "Industrious Nudge" and
+// clicking it does nothing. (osascript's notifications belong to Script
+// Editor, which opens when clicked; that's only the fallback now.) Doesn't
+// wait for the helper, so AI-tool hooks return immediately.
+export function notify(title, body, home) {
+  if (helperInstalled()) {
+    spawnSync('open', ['-g', '-n', helperPath(), '--args', 'notify', join(home, 'notify-status.json'), title, body], {
+      stdio: 'ignore',
+      timeout: 5_000,
+    });
+    return;
+  }
   const esc = (s) => String(s).replace(/\\/g, '\\\\').replace(/"/g, '\\"');
-  spawnSync('osascript', ['-e', `display notification "${esc(message)}" with title "${esc(title)}"`], {
+  spawnSync('osascript', ['-e', `display notification "${esc(body)}" with title "${esc(title)}"`], {
     stdio: 'ignore',
   });
 }
