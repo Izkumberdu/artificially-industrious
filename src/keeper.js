@@ -6,7 +6,7 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { listActive } from './tasks.js';
 import { loadConfig } from './config.js';
-import { keepAlive, hasAccessibility } from './keepalive.js';
+import { keepAlive, helperInstalled } from './keepalive.js';
 
 const pidFile = (home) => join(home, 'keeper.pid');
 const BIN = fileURLToPath(new URL('../bin/industrious.js', import.meta.url));
@@ -64,13 +64,6 @@ export async function runKeeper(home) {
   let warned = false;
   for (;;) {
     const cfg = loadConfig(home);
-    if (!warned && cfg.mode !== 'caffeinate' && !hasAccessibility()) {
-      console.log(
-        `${new Date().toISOString()} no Accessibility permission: nudges are being dropped, ` +
-          'so Teams will still go Away. Run `industrious permission`.',
-      );
-      warned = true;
-    }
     const active = listActive(home, Date.now(), cfg.timeoutMinutes * 60_000);
     if (active.length === 0) {
       release();
@@ -80,7 +73,18 @@ export async function runKeeper(home) {
       if (!claim(home)) return;
       continue;
     }
-    keepAlive(cfg.mode);
+    const nudged = keepAlive(cfg.mode, home);
+    if (nudged === false && !warned) {
+      console.log(
+        `${new Date().toISOString()} nudge failed: ` +
+          (helperInstalled()
+            ? 'Industrious Nudge has no Accessibility permission. Run `industrious permission`.'
+            : 'Industrious Nudge is not installed. Run `industrious install helper`.') +
+          ' Teams will still go Away.',
+      );
+      warned = true;
+    }
+    if (nudged) warned = false;
     await sleep(cfg.intervalSeconds * 1000);
   }
 }

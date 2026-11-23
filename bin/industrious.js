@@ -7,7 +7,9 @@ import { join, dirname } from 'node:path';
 import { startTask, stopTask, listActive } from '../src/tasks.js';
 import { homeDir, loadConfig, saveConfig, MODES } from '../src/config.js';
 import { ensureKeeper, keeperPid, runKeeper } from '../src/keeper.js';
-import { nudge, notify, hasAccessibility } from '../src/keepalive.js';
+import { spawnSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
+import { nudge, notify, hasAccessibility, helperInstalled, helperPath } from '../src/keepalive.js';
 import {
   readStdin,
   taskIdFrom,
@@ -35,6 +37,13 @@ function end(id) {
   }
 }
 
+function helperState() {
+  if (!helperInstalled()) return 'not installed, so nudges are off (run `industrious install helper`)';
+  return hasAccessibility(HOME)
+    ? `ready (${helperPath()})`
+    : 'installed but has no permission, so nudges are dropped (run `industrious permission`)';
+}
+
 const USAGE = `Artificially Industrious — stays active while your AI is still working.
 
 Usage:
@@ -44,7 +53,8 @@ Usage:
   industrious status                Show running tasks and the keeper
   industrious mode [${MODES.join('|')}]
                                     Show or set how activity is signalled
-  industrious permission            Check (and ask macOS for) Accessibility permission
+  industrious install helper        Build the Industrious Nudge helper app into ~/Applications
+  industrious permission            Ask macOS to give the helper Accessibility permission
   industrious nudge                 Send one nudge
   industrious install claude|cursor [--write]
                                     Print (or write) the hooks for an AI tool
@@ -111,11 +121,7 @@ async function main() {
       const pid = keeperPid(HOME);
       console.log(`mode: ${cfg.mode}, every ${cfg.intervalSeconds}s, timeout ${cfg.timeoutMinutes}m`);
       console.log(`keeper: ${pid ? `running (pid ${pid})` : 'not running'}`);
-      if (cfg.mode !== 'caffeinate') {
-        console.log(
-          `accessibility: ${hasAccessibility() ? 'granted' : 'NOT granted, so nudges are dropped (run `industrious permission`)'}`,
-        );
-      }
+      if (cfg.mode !== 'caffeinate') console.log(`helper: ${helperState()}`);
       if (tasks.length === 0) console.log('no AI tasks running');
       for (const t of tasks) {
         const mins = Math.round((Date.now() - t.startedAt) / 60_000);
@@ -132,50 +138,50 @@ async function main() {
       if (!MODES.includes(args[0])) throw new Error(`mode must be one of: ${MODES.join(', ')}`);
       saveConfig({ mode: args[0] }, HOME);
       console.log(`mode set to ${args[0]}`);
-      if (args[0] !== 'caffeinate') {
-        console.log(
-          hasAccessibility()
-            ? 'Accessibility permission: granted.'
-            : 'Nudge needs Accessibility permission. Run `industrious permission` from the app that runs your AI tool.',
-        );
-      }
+      if (args[0] !== 'caffeinate') console.log(`helper: ${helperState()}`);
       break;
     }
 
     case 'nudge':
-      if (!hasAccessibility()) {
-        console.log(
-          'No Accessibility permission yet, so macOS would silently drop the nudge.\n' +
-            'Run `industrious permission` to ask for it.',
-        );
+      if (!helperInstalled() || !hasAccessibility(HOME)) {
+        console.log(`helper: ${helperState()}`);
         process.exit(1);
       }
-      console.log(nudge() ? 'nudge sent' : 'nudge failed');
+      console.log(nudge(HOME) ? 'nudge sent' : 'nudge failed');
       break;
 
     case 'permission':
-      if (hasAccessibility(true)) {
-        console.log('Accessibility permission: granted. Nudge mode will work.');
+      if (!helperInstalled()) {
+        console.log(`helper: ${helperState()}`);
+        process.exit(1);
+      }
+      if (hasAccessibility(HOME, true)) {
+        console.log('Industrious Nudge has permission. Nudges will work.');
       } else {
         console.log(
-          'Accessibility permission: not granted.\n' +
-            'macOS should now show a prompt, and the app running this command is now listed in\n' +
+          'Industrious Nudge does not have permission yet.\n' +
+            'macOS should now show a prompt, and "Industrious Nudge" is listed in\n' +
             'System Settings → Privacy & Security → Accessibility (called "Device Control and Data Access"\n' +
-            'on newer macOS). Switch it on, then quit and reopen that app.\n' +
-            'Using the Claude desktop app? Switch on the lowercase "claude" entry, not the orange "Claude".\n' +
-            'Not listed? Click "+" there and add the app yourself (Terminal, iTerm, Claude, Cursor…).',
+            'on newer macOS). Switch it on.',
         );
       }
       break;
 
     case 'install': {
       const [tool] = args;
+      if (tool === 'helper') {
+        const script = fileURLToPath(new URL('../scripts/build-helper.sh', import.meta.url));
+        const r = spawnSync('zsh', [script], { stdio: 'inherit' });
+        if (r.status !== 0) throw new Error('helper build failed (needs Xcode Command Line Tools: xcode-select --install)');
+        console.log('Next: industrious permission');
+        break;
+      }
       const write = args.includes('--write');
       const targets = {
         claude: [join(homedir(), '.claude', 'settings.json'), mergeClaudeSettings],
         cursor: [join(homedir(), '.cursor', 'hooks.json'), mergeCursorHooks],
       };
-      if (!targets[tool]) throw new Error('install needs a tool: claude or cursor');
+      if (!targets[tool]) throw new Error('install needs: helper, claude or cursor');
       const [path, merge] = targets[tool];
       const current = existsSync(path) ? JSON.parse(readFileSync(path, 'utf8')) : {};
       const next = merge(current, selfCommand());

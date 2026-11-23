@@ -6,7 +6,7 @@ Your AI is still working on your prompt, so you are still working. This keeps
 your Microsoft Teams status "Available" while that's true, then stops, and sends
 a notification when your AI is done.
 
-macOS only. No dependencies. No Microsoft Graph and no Azure setup.
+macOS only. No npm dependencies. No Microsoft Graph and no Azure setup.
 
 ## How it works
 
@@ -26,7 +26,11 @@ AI tool hook ──► industrious hook stop  ──► task removed ──► l
 ## Setup
 
 ```bash
-# Claude Code: preview first, then write (a backup of settings.json is made)
+# 1. The nudge helper (see "Modes" below for why it's a separate app)
+node bin/industrious.js install helper
+node bin/industrious.js permission
+
+# 2. Claude Code: preview first, then write (a backup of settings.json is made)
 node bin/industrious.js install claude
 node bin/industrious.js install claude --write
 
@@ -46,42 +50,40 @@ Optional: run `npm link` to get an `industrious` command on your PATH.
 
 | Mode | How | Permissions |
 |---|---|---|
-| `both` (default) | nudge resets the idle timer, and caffeinate keeps the screen from sleeping | Accessibility |
-| `nudge` | posts a zero-distance mouse move, so nothing visibly moves | Accessibility |
+| `both` (default) | nudge resets the idle timer, and caffeinate keeps the screen from sleeping | helper only |
+| `nudge` | posts a zero-distance mouse move, so nothing visibly moves | helper only |
 | `caffeinate` | `caffeinate -u` only. **Not enough by itself**, see below | none |
 
+### The nudge helper
+
+Posting even a zero-distance mouse move needs macOS's Accessibility permission,
+called **Device Control and Data Access** on newer macOS. That permission is
+powerful: an app that has it can type and click anywhere.
+
+So the permission goes to one small, single-purpose app:
+**Industrious Nudge.app**, a ~50-line helper (`helper/main.swift`). It can only
+post one mouse move at the cursor's current position, and then it quits. The
+keeper launches it with `open`, so macOS checks the helper's own permission.
+
 ```bash
-industrious mode nudge
-industrious permission # asks macOS for Accessibility access
-industrious nudge      # send one to check it works
+industrious install helper   # builds Industrious Nudge.app into ~/Applications (needs Xcode CLT)
+industrious permission       # macOS lists "Industrious Nudge"; switch it on
+industrious status           # helper: ready
 ```
 
-**Can't find the app under Accessibility?** macOS only lists an app after it
-has asked for access. `industrious permission` makes that request, so the app
-running it (Terminal, iTerm, Claude, Cursor…) shows up with a toggle. Switch
-it on, then quit and reopen that app. If it still isn't listed, click **+** in
-System Settings → Privacy & Security → Accessibility and add the app yourself.
+Industrious Nudge is the only app that needs the permission.
 
-Run `industrious permission` from the same app your AI tool runs in. The
-permission belongs to that app, not to `industrious`.
-
-> **Newer macOS** renamed this list to **Device Control and Data Access**
-> (still under Privacy & Security).
->
-> **Claude desktop app:** hooks run under the bundled Claude Code engine, which
-> appears as a lowercase **`claude`** with a blank icon. That's the one to switch
-> on, not the orange **Claude** app. Because it lives in a versioned folder,
-> a Claude Code update may need you to switch it on again.
+> The helper is ad-hoc signed, so macOS tracks the permission for that exact
+> build. If you rebuild it, switch it on again.
 
 **Why caffeinate alone isn't enough:** in a hands-off test with only
 `caffeinate -u` running once a minute, the system idle timer (`HIDIdleTime`) kept
 climbing to over 400 seconds. Teams goes Away after about 5 minutes idle, so it
-would still mark you Away. You need the nudge, and therefore Accessibility
-permission.
+would still mark you Away. You need the nudge, and therefore the helper.
 
-**With `both` mode and Accessibility granted**, the same 6½-minute hands-off
-test never let the idle timer go past about 50 seconds. It reset with every
-once-a-minute nudge. Without that permission, macOS silently drops the nudges;
+**With `both` mode and Industrious Nudge switched on**, the same 6½-minute
+hands-off test never let the idle timer go past about 60 seconds. It reset with
+every once-a-minute nudge. Without the permission, macOS silently drops the nudges;
 `industrious status` and `~/.industrious/keeper.log` will tell you when that's
 happening.
 
