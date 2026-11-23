@@ -1,0 +1,19 @@
+{
+  "name": "artificially-industrious",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Keeps your Microsoft Teams status active while an AI tool is still working on your prompt.",
+  "bin": {
+    "industrious": "bin/industrious.js"
+  },
+  "scripts": {
+    "test": "node --test"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "os": [
+    "darwin"
+  ]
+}
