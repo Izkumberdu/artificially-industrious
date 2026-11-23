@@ -17,15 +17,26 @@ macOS only. No npm dependencies. No Microsoft Graph and no Azure setup.
 
 ## Setup
 
-You need Node 20+ and the Xcode Command Line Tools (`xcode-select --install`).
+You need the Xcode Command Line Tools (`xcode-select --install`).
 
 **1. Get it**
+
+```bash
+brew install izkumberdu/tap/artificially-industrious
+```
+
+<details>
+<summary>Without Homebrew</summary>
+
+Needs Node 20+.
 
 ```bash
 git clone https://github.com/Izkumberdu/artificially-industrious.git
 cd artificially-industrious
 npm link
 ```
+
+</details>
 
 **2. Install the helper**
 
@@ -153,13 +164,13 @@ This removes the hooks from Claude Code, Copilot and Cursor (leaving your other
 hooks alone, with a backup of each settings file), stops the keeper, moves
 Industrious Nudge.app to the Trash, and deletes `~/.industrious`.
 
-It then prints three commands to run yourself: one to reset the helper's macOS
-permissions, one to remove the `industrious` command, and one to delete the
-project folder.
+It then prints the commands to finish by hand: one to reset the helper's macOS
+permissions, then `brew uninstall artificially-industrious` (or, for a clone,
+`npm rm -g` and deleting the project folder).
 
 > **Just deleting the app isn't enough.** The hooks live in your AI tools'
 > settings, so they keep running. Without the app, Teams and Slack mark you Away again;
-> without the project folder, every prompt shows a hook error. Run
+> without the `industrious` command, every prompt shows a hook error. Run
 > `industrious uninstall` first.
 >
 > macOS also remembers the helper's permission after the app is gone, so a

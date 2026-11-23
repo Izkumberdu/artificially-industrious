@@ -285,10 +285,12 @@ async function main() {
         '\nTo finish, run these yourself:\n\n' +
           `  tccutil reset All ${HELPER_ID}\n` +
           '      forgets the helper\'s macOS permissions\n' +
-          '  npm rm -g artificially-industrious\n' +
-          '      removes the industrious command\n' +
-          `  rm -rf ${JSON.stringify(repo)}\n` +
-          '      deletes the project folder\n',
+          (process.env.INDUSTRIOUS_BIN
+            ? '  brew uninstall artificially-industrious\n' + '      removes the industrious command\n'
+            : '  npm rm -g artificially-industrious\n' +
+              '      removes the industrious command\n' +
+              `  rm -rf ${JSON.stringify(repo)}\n` +
+              '      deletes the project folder\n'),
       );
       break;
     }

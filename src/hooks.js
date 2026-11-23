@@ -28,15 +28,19 @@ export function shellQuote(s) {
 }
 
 // The command hooks should run: node + this repo's bin, so it works without
-// `npm link` and with spaces in the path.
+// `npm link` and with spaces in the path. Homebrew's wrapper sets
+// INDUSTRIOUS_BIN to its stable opt path, so hooks survive `brew upgrade`.
 export function selfCommand() {
+  if (process.env.INDUSTRIOUS_BIN) return shellQuote(process.env.INDUSTRIOUS_BIN);
   const bin = new URL('../bin/industrious.js', import.meta.url).pathname;
   return `${shellQuote(process.execPath)} ${shellQuote(decodeURIComponent(bin))}`;
 }
 
 // ~/.claude/settings.json
+// Each merge first drops our old hooks, so switching between a clone and
+// Homebrew (or moving the folder) replaces them instead of adding duplicates.
 export function mergeClaudeSettings(settings, cmd) {
-  const next = structuredClone(settings ?? {});
+  const next = removeClaudeHooks(settings);
   next.hooks ??= {};
   const add = (event, command) => {
     const groups = (next.hooks[event] ??= []);
@@ -53,6 +57,7 @@ export function mergeClaudeSettings(settings, cmd) {
 // (agent mode) and by the Copilot CLI. agentStop fires once per prompt.
 export function mergeCopilotHooks(config, cmd) {
   const next = structuredClone(config ?? {});
+  for (const [event, list] of Object.entries(next.hooks ?? {})) next.hooks[event] = list.filter((h) => !isOurs(h.bash));
   next.version ??= 1;
   next.hooks ??= {};
   const add = (event, bash) => {
@@ -67,7 +72,7 @@ export function mergeCopilotHooks(config, cmd) {
 
 // ~/.cursor/hooks.json
 export function mergeCursorHooks(config, cmd) {
-  const next = structuredClone(config ?? {});
+  const next = removeCursorHooks(config);
   next.version ??= 1;
   next.hooks ??= {};
   const add = (event, command) => {
@@ -80,7 +85,8 @@ export function mergeCursorHooks(config, cmd) {
 }
 
 // Uninstall: strip only our hooks, matched by the command they run.
-const isOurs = (command) => /industrious\.js'? hook (start|stop) /.test(String(command ?? ''));
+// Matches both `…/industrious.js' hook …` and Homebrew's `…/industrious' hook …`.
+const isOurs = (command) => /industrious(\.js)?'? hook (start|stop) /.test(String(command ?? ''));
 
 export function removeClaudeHooks(settings) {
   const next = structuredClone(settings ?? {});

@@ -8,6 +8,7 @@ import {
   removeClaudeHooks,
   removeCursorHooks,
   shellQuote,
+  selfCommand,
 } from '../src/hooks.js';
 
 test('task id comes from the session or conversation id', () => {
@@ -83,4 +84,27 @@ test('removing the only hooks drops the empty hooks object', () => {
 test('removing hooks from Cursor keeps other hooks', () => {
   const merged = mergeCursorHooks({ version: 1, hooks: { stop: [{ command: 'say hi' }] } }, "'n' '/a/bin/industrious.js'");
   assert.deepEqual(removeCursorHooks(merged), { version: 1, hooks: { stop: [{ command: 'say hi' }] } });
+});
+
+test('reinstalling from a new location replaces our old hooks instead of duplicating', () => {
+  const oldCmd = "'/usr/bin/node' '/old/place/bin/industrious.js'";
+  const brewCmd = "'/opt/homebrew/opt/artificially-industrious/bin/industrious'";
+  const claude = mergeClaudeSettings(mergeClaudeSettings({}, oldCmd), brewCmd);
+  assert.equal(claude.hooks.Stop.length, 1);
+  assert.equal(claude.hooks.Stop[0].hooks[0].command, `${brewCmd} hook stop claude`);
+  const cursor = mergeCursorHooks(mergeCursorHooks({}, oldCmd), brewCmd);
+  assert.deepEqual(cursor.hooks.stop, [{ command: `${brewCmd} hook stop cursor` }]);
+  const copilot = mergeCopilotHooks(mergeCopilotHooks({}, oldCmd), brewCmd);
+  assert.equal(copilot.hooks.agentStop.length, 1);
+  assert.equal(copilot.hooks.agentStop[0].bash, `${brewCmd} hook stop copilot`);
+  assert.deepEqual(removeClaudeHooks(claude), {});
+});
+
+test('Homebrew wrapper path becomes the hook command', () => {
+  process.env.INDUSTRIOUS_BIN = '/opt/homebrew/opt/artificially-industrious/bin/industrious';
+  try {
+    assert.equal(selfCommand(), "'/opt/homebrew/opt/artificially-industrious/bin/industrious'");
+  } finally {
+    delete process.env.INDUSTRIOUS_BIN;
+  }
 });
